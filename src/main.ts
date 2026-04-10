@@ -31,38 +31,105 @@ ground.rotation.x = -Math.PI / 2;
 ground.receiveShadow = true;
 scene.add(ground);
 
-// --- Player (a cute bouncing ball) ---
-const player = new THREE.Mesh(
-  new THREE.SphereGeometry(0.5, 32, 32),
-  new THREE.MeshToonMaterial({ color: 0xff6b6b })
-);
-player.position.y = 0.5;
-player.castShadow = true;
+// --- Player (a cute boy) ---
+const player = new THREE.Group();
+player.position.y = 0;
 scene.add(player);
 
-// Eyes on the ball
-const eyeGeom = new THREE.SphereGeometry(0.12, 16, 16);
+// Body (blue shirt)
+const body = new THREE.Mesh(
+  new THREE.CylinderGeometry(0.3, 0.35, 0.8, 16),
+  new THREE.MeshToonMaterial({ color: 0x4488ff })
+);
+body.position.y = 0.7;
+body.castShadow = true;
+player.add(body);
+
+// Head (skin color)
+const head = new THREE.Mesh(
+  new THREE.SphereGeometry(0.35, 32, 32),
+  new THREE.MeshToonMaterial({ color: 0xffcc99 })
+);
+head.position.y = 1.45;
+head.castShadow = true;
+player.add(head);
+
+// Hair (brown, on top of head)
+const hair = new THREE.Mesh(
+  new THREE.SphereGeometry(0.37, 32, 16, 0, Math.PI * 2, 0, Math.PI * 0.55),
+  new THREE.MeshToonMaterial({ color: 0x4a2800 })
+);
+hair.position.y = 1.48;
+player.add(hair);
+
+// Fringe (front hair)
+const fringe = new THREE.Mesh(
+  new THREE.BoxGeometry(0.5, 0.1, 0.15),
+  new THREE.MeshToonMaterial({ color: 0x4a2800 })
+);
+fringe.position.set(0, 1.65, 0.25);
+player.add(fringe);
+
+// Eyes
+const eyeGeom = new THREE.SphereGeometry(0.07, 16, 16);
 const eyeMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
-const pupilGeom = new THREE.SphereGeometry(0.06, 16, 16);
-const pupilMat = new THREE.MeshBasicMaterial({ color: 0x000000 });
+const pupilGeom = new THREE.SphereGeometry(0.04, 16, 16);
+const pupilMat = new THREE.MeshBasicMaterial({ color: 0x222222 });
 
 for (const side of [-1, 1]) {
   const eye = new THREE.Mesh(eyeGeom, eyeMat);
-  eye.position.set(side * 0.18, 0.15, 0.4);
+  eye.position.set(side * 0.13, 1.48, 0.3);
   player.add(eye);
   const pupil = new THREE.Mesh(pupilGeom, pupilMat);
-  pupil.position.set(0, 0, 0.1);
+  pupil.position.set(0, 0, 0.06);
   eye.add(pupil);
 }
 
 // Smile
-const smileCurve = new THREE.EllipseCurve(0, -0.05, 0.15, 0.1, Math.PI, 0, false, 0);
-const smilePoints = smileCurve.getPoints(20).map((p) => new THREE.Vector3(p.x, p.y, 0.48));
+const smileCurve = new THREE.EllipseCurve(0, 0, 0.1, 0.06, Math.PI, 0, false, 0);
+const smilePoints = smileCurve.getPoints(20).map((p) => new THREE.Vector3(p.x, p.y + 1.35, 0.34));
 const smileLine = new THREE.Line(
   new THREE.BufferGeometry().setFromPoints(smilePoints),
-  new THREE.LineBasicMaterial({ color: 0x000000, linewidth: 2 })
+  new THREE.LineBasicMaterial({ color: 0xcc6655, linewidth: 2 })
 );
 player.add(smileLine);
+
+// Legs (short pants)
+for (const side of [-1, 1]) {
+  const leg = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.1, 0.12, 0.5, 8),
+    new THREE.MeshToonMaterial({ color: 0x335533 })
+  );
+  leg.position.set(side * 0.15, 0.25, 0);
+  leg.castShadow = true;
+  player.add(leg);
+
+  // Shoes
+  const shoe = new THREE.Mesh(
+    new THREE.SphereGeometry(0.13, 16, 16),
+    new THREE.MeshToonMaterial({ color: 0xcc3333 })
+  );
+  shoe.position.set(side * 0.15, 0.05, 0.05);
+  shoe.scale.set(1, 0.6, 1.3);
+  player.add(shoe);
+}
+
+// Arms
+const leftArm = new THREE.Mesh(
+  new THREE.CylinderGeometry(0.06, 0.07, 0.5, 8),
+  new THREE.MeshToonMaterial({ color: 0xffcc99 })
+);
+leftArm.position.set(-0.38, 0.85, 0);
+leftArm.rotation.z = 0.3;
+player.add(leftArm);
+
+const rightArm = new THREE.Mesh(
+  new THREE.CylinderGeometry(0.06, 0.07, 0.5, 8),
+  new THREE.MeshToonMaterial({ color: 0xffcc99 })
+);
+rightArm.position.set(0.38, 0.85, 0);
+rightArm.rotation.z = -0.3;
+player.add(rightArm);
 
 // --- Stars to collect ---
 const stars: THREE.Mesh[] = [];
@@ -175,24 +242,36 @@ function animate(time: number) {
   if (keys["arrowdown"] || keys["s"]) dir.z += 1;
   if (keys["arrowleft"] || keys["a"]) dir.x -= 1;
   if (keys["arrowright"] || keys["d"]) dir.x += 1;
-  if (dir.length() > 0) {
+  const isMoving = dir.length() > 0;
+  if (isMoving) {
     dir.normalize();
     player.position.x += dir.x * speed * dt;
     player.position.z += dir.z * speed * dt;
-    // Rotate player in movement direction
-    player.rotation.z = -dir.x * 0.3;
-    player.rotation.x = dir.z * 0.3;
-  } else {
-    player.rotation.z *= 0.9;
-    player.rotation.x *= 0.9;
+    // Face movement direction
+    player.rotation.y = Math.atan2(dir.x, -dir.z);
   }
+
+  // Walking animation: swing legs and arms
+  const swing = isMoving ? Math.sin(time * 0.012) * 0.6 : 0;
+  leftArm.rotation.x = swing;
+  rightArm.rotation.x = -swing;
+  // Legs are at indices that we find by child position
+  player.children.forEach((child) => {
+    // Legs are green cylinders
+    if ((child as THREE.Mesh).material &&
+        ((child as THREE.Mesh).material as THREE.MeshToonMaterial).color &&
+        ((child as THREE.Mesh).material as THREE.MeshToonMaterial).color.getHex() === 0x335533) {
+      const legSide = child.position.x > 0 ? 1 : -1;
+      child.rotation.x = legSide * swing * 0.8;
+    }
+  });
 
   // Keep player on the ground
   player.position.x = THREE.MathUtils.clamp(player.position.x, -18, 18);
   player.position.z = THREE.MathUtils.clamp(player.position.z, -18, 18);
 
-  // Bounce animation
-  player.position.y = 0.5 + Math.abs(Math.sin(time * 0.005)) * 0.15;
+  // Gentle bob while walking
+  player.position.y = isMoving ? Math.abs(Math.sin(time * 0.012)) * 0.1 : 0;
 
   // Spin and bob stars
   for (const star of stars) {
@@ -203,7 +282,9 @@ function animate(time: number) {
 
   // Check star collection
   for (let i = stars.length - 1; i >= 0; i--) {
-    if (player.position.distanceTo(stars[i].position) < 1.0) {
+    const playerXZ = new THREE.Vector3(player.position.x, 0, player.position.z);
+    const starXZ = new THREE.Vector3(stars[i].position.x, 0, stars[i].position.z);
+    if (playerXZ.distanceTo(starXZ) < 1.2) {
       const star = stars[i];
       const color = (star.material as THREE.MeshToonMaterial).color.getHex();
       spawnParticles(star.position.clone(), color);

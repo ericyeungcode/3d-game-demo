@@ -11,3 +11,6 @@ publish: build
 
 clean:
 	rm -rf dist
+
+serve-local:
+	npx serve dist
